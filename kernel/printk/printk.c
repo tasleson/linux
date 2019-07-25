@@ -1999,6 +1999,21 @@ asmlinkage int vprintk(const char *fmt, va_list args)
 }
 EXPORT_SYMBOL(vprintk);
 
+asmlinkage int printk_emit(int facility, int level,
+			   const char *dict, size_t dictlen,
+			   const char *fmt, ...)
+{
+	va_list args;
+	int r;
+
+	va_start(args, fmt);
+	r = vprintk_emit(facility, level, dict, dictlen, fmt, args);
+	va_end(args);
+
+	return r;
+}
+EXPORT_SYMBOL(printk_emit);
+
 int vprintk_default(const char *fmt, va_list args)
 {
 	int r;
