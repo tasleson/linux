@@ -504,6 +504,41 @@ char *strim(char *s)
 }
 EXPORT_SYMBOL(strim);
 
+/**
+ * Removes leading and trailing whitespace and removes duplicate
+ * adjacent whitespace in a string, modifies string in place.
+ * @s The %NUL-terminated string to have spaces removed
+ * Returns the new length
+ */
+size_t sdtrim(char *s)
+{
+        size_t ret = 0;
+        char *w = s;
+        char *p;
+
+        /*
+         * This will remove all leading and duplicate adjacent, but leave
+         * 1 space at the end if one or more are present.
+         */
+        for (p = s; *p != '\0'; ++p) {
+                if (!isspace(*p) || (p != s && !isspace(*(p - 1)))) {
+                        *w = *p;
+                        ++w;
+                        ret += 1;
+                }
+        }
+
+        *w = '\0';
+
+        /* Take off the last character if it's a space too */
+        if (ret && isspace(*(w - 1))) {
+                ret--;
+                *(w - 1) = '\0';
+        }
+        return ret;
+}
+EXPORT_SYMBOL(sdtrim);
+
 #ifndef __HAVE_ARCH_STRLEN
 /**
  * strlen - Find the length of a string

@@ -72,6 +72,8 @@ extern char * __must_check skip_spaces(const char *);
 
 extern char *strim(char *);
 
+extern size_t sdtrim(char *s);
+
 static inline __must_check char *strstrip(char *str)
 {
 	return strim(str);
