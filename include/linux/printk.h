@@ -172,6 +172,18 @@ int printk_emit(int facility, int level,
 		const char *dict, size_t dictlen,
 		const char *fmt, ...);
 
+#define printk_emit_ratelimited(facility, level,			\
+		dict, dict_len, fmt, ...)				\
+({									\
+	static DEFINE_RATELIMIT_STATE(_ers,				\
+				      DEFAULT_RATELIMIT_INTERVAL,	\
+				      DEFAULT_RATELIMIT_BURST);		\
+									\
+	if (__ratelimit(&_ers))						\
+		printk_emit(facility, level,				\
+				dict, dict_len, fmt, ##__VA_ARGS__);	\
+})
+
 asmlinkage __printf(1, 2) __cold
 int printk(const char *fmt, ...);
 
