@@ -1919,6 +1919,30 @@ int dev_set_name(struct device *dev, const char *fmt, ...)
 EXPORT_SYMBOL_GPL(dev_set_name);
 
 /**
+ * dev_durable_name - Write "DURABLE_NAME"=<durable name> in buffer
+ * @dev: device
+ * @buffer: character buffer to write results
+ * @len: length of buffer
+ * @return Number of bytes written to buffer
+ */
+int dev_durable_name(const struct device *dev, char* buffer, size_t len)
+{
+	int tmp, dlen;
+	if (dev->durable_name) {
+		tmp = snprintf(buffer, len, "DURABLE_NAME=");
+		if (tmp < len ) {
+			dlen = dev->durable_name(dev, buffer + tmp, len - tmp);
+			if (dlen > 0 && ((dlen + tmp) < len)) {
+				return dlen + tmp;
+			}
+		}
+	}
+	return 0;
+}
+
+EXPORT_SYMBOL_GPL(dev_durable_name);
+
+/**
  * device_to_dev_kobj - select a /sys/dev/ directory for the device
  * @dev: device
  *
@@ -3167,6 +3191,15 @@ create_syslog_header(const struct device *dev, char *hdr, size_t hdrlen)
 		pos++;
 		pos += snprintf(hdr + pos, hdrlen - pos,
 				"DEVICE=+%s:%s", subsys, dev_name(dev));
+	}
+
+	if (dev->durable_name) {
+		int dlen;
+		dlen = dev_durable_name(dev, hdr + (pos + 1),
+					hdrlen - (pos + 1));
+		if (dlen) {
+			pos += dlen + 1;
+		}
 	}
 
 	if (pos >= hdrlen)

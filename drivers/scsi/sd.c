@@ -3315,6 +3315,22 @@ static void sd_probe_async(void *data, async_cookie_t cookie)
 	put_device(&sdkp->dev);
 }
 
+static int scsi_durable_name(const struct device *dev, char *buf, size_t len)
+{
+	int vpd_len = 0;
+	struct scsi_device *sdp = to_scsi_device(dev);
+
+	vpd_len = scsi_vpd_lun_id(sdp, buf, len);
+	if (vpd_len > 0 && vpd_len < len) {
+		vpd_len = sdtrim(buf) + 1;
+		printk("scsi_durable_name: %s\n", buf);
+	} else {
+		vpd_len = 0;
+	}
+
+	return vpd_len;
+}
+
 /**
  *	sd_probe - called during driver initialization and whenever a
  *	new scsi device is attached to the system. It is called once
@@ -3377,6 +3393,8 @@ static int sd_probe(struct device *dev)
 		goto out_free_index;
 	}
 
+	printk("durable_name function %px\n", scsi_durable_name);
+	dev->durable_name = scsi_durable_name;
 	sdkp->device = sdp;
 	sdkp->driver = &sd_template;
 	sdkp->disk = gd;

@@ -170,11 +170,19 @@ EXPORT_SYMBOL_GPL(blk_status_to_errno);
 static void print_req_error(struct request *req, blk_status_t status)
 {
 	int idx = (__force int)status;
+	char dict[128];
+	int dict_len = 0;
 
 	if (WARN_ON_ONCE(idx >= ARRAY_SIZE(blk_errors)))
 		return;
 
-	printk_ratelimited(KERN_ERR "%s: %s error, dev %s, sector %llu flags %x\n",
+	if (req->rq_disk) {
+		dict_len = dev_durable_name(&req->rq_disk->part0.__dev, dict,
+				sizeof(dict));
+	}
+
+	printk_emit_ratelimited(0, LOGLEVEL_ERR, dict, dict_len,
+				"%s: %s error, dev %s, sector %llu flags %x\n",
 				__func__, blk_errors[idx].name,
 				req->rq_disk ?  req->rq_disk->disk_name : "?",
 				(unsigned long long)blk_rq_pos(req),

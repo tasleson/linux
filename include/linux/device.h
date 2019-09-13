@@ -984,6 +984,9 @@ struct device {
 	struct device_private	*p;
 
 	const char		*init_name; /* initial name of the device */
+
+	int (*durable_name)(const struct device *dev, char *buff, size_t len);
+
 	const struct device_type *type;
 
 	struct bus_type	*bus;		/* type of bus device is on */
@@ -1094,6 +1097,8 @@ static inline const char *dev_name(const struct device *dev)
 
 extern __printf(2, 3)
 int dev_set_name(struct device *dev, const char *name, ...);
+
+int dev_durable_name(const struct device *d, char* buffer, size_t len);
 
 #ifdef CONFIG_NUMA
 static inline int dev_to_node(struct device *dev)
