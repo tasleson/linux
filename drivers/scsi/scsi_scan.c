@@ -334,6 +334,7 @@ static void scsi_target_dev_release(struct device *dev)
 static struct device_type scsi_target_type = {
 	.name =		"scsi_target",
 	.release =	scsi_target_dev_release,
+	.durable_name = scsi_durable_name,
 };
 
 int scsi_is_target_device(const struct device *dev)

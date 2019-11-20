@@ -1928,10 +1928,10 @@ EXPORT_SYMBOL_GPL(dev_set_name);
 int dev_durable_name(const struct device *dev, char* buffer, size_t len)
 {
 	int tmp, dlen;
-	if (dev->durable_name) {
+	if (dev->type && dev->type->durable_name) {
 		tmp = snprintf(buffer, len, "DURABLE_NAME=");
 		if (tmp < len ) {
-			dlen = dev->durable_name(dev, buffer + tmp, len - tmp);
+			dlen = dev->type->durable_name(dev, buffer + tmp, len - tmp);
 			if (dlen > 0 && ((dlen + tmp) < len)) {
 				return dlen + tmp;
 			}
@@ -3193,7 +3193,7 @@ create_syslog_header(const struct device *dev, char *hdr, size_t hdrlen)
 				"DEVICE=+%s:%s", subsys, dev_name(dev));
 	}
 
-	if (dev->durable_name) {
+	if (dev->type && dev->type->durable_name) {
 		int dlen;
 		dlen = dev_durable_name(dev, hdr + (pos + 1),
 					hdrlen - (pos + 1));
