@@ -6475,6 +6475,7 @@ EXPORT_SYMBOL(ata_link_printk);
 void ata_dev_printk(const struct ata_device *dev, const char *level,
 		    const char *fmt, ...)
 {
+	struct device *gendev;
 	struct va_format vaf;
 	va_list args;
 
@@ -6483,9 +6484,12 @@ void ata_dev_printk(const struct ata_device *dev, const char *level,
 	vaf.fmt = fmt;
 	vaf.va = &args;
 
-	printk("%sata%u.%02u: %pV",
-	       level, dev->link->ap->print_id, dev->link->pmp + dev->devno,
-	       &vaf);
+	gendev = (dev->sdev) ? &dev->sdev->sdev_gendev : &dev->tdev;
+
+	dev_printk(level, gendev, "ata%u.%02u: %pV",
+			dev->link->ap->print_id,
+			dev->link->pmp + dev->devno,
+			&vaf);
 
 	va_end(args);
 }
