@@ -20,6 +20,23 @@ __xfs_printk(
 	const struct xfs_mount	*mp,
 	struct va_format	*vaf)
 {
+	char dict[128];
+	int dict_len = 0;
+
+	if (mp && mp->m_super && mp->m_super->s_bdev &&
+		mp->m_super->s_bdev->bd_disk) {
+		dict_len = dev_durable_name(
+			disk_to_dev(mp->m_super->s_bdev->bd_disk)->parent,
+			dict,
+			sizeof(dict));
+		if (dict_len) {
+			printk_emit(
+				0, level[1] - '0', dict, dict_len,
+				"XFS (%s): %pV\n",  mp->m_fsname, vaf);
+			return;
+		}
+	}
+
 	if (mp && mp->m_fsname) {
 		printk("%sXFS (%s): %pV\n", level, mp->m_fsname, vaf);
 		return;
