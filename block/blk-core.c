@@ -211,11 +211,20 @@ static void print_req_error(struct request *req, blk_status_t status,
 		const char *caller)
 {
 	int idx = (__force int)status;
+	char dict[128];
+	int dict_len = 0;
 
 	if (WARN_ON_ONCE(idx >= ARRAY_SIZE(blk_errors)))
 		return;
 
-	printk_ratelimited(KERN_ERR
+	if (req->rq_disk) {
+		dict_len = dev_durable_name(
+				disk_to_dev(req->rq_disk)->parent,
+				dict,
+				sizeof(dict));
+	}
+
+	printk_emit_ratelimited(0, LOGLEVEL_ERR, dict, dict_len,
 		"%s: %s error, dev %s, sector %llu op 0x%x:(%s) flags 0x%x "
 		"phys_seg %u prio class %u\n",
 		caller, blk_errors[idx].name,
