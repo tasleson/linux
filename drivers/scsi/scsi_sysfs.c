@@ -1560,6 +1560,7 @@ static struct device_type scsi_dev_type = {
 	.name =		"scsi_device",
 	.release =	scsi_device_dev_release,
 	.groups =	scsi_sdev_attr_groups,
+	.durable_name = dev_to_scsi_durable_name,
 };
 
 void scsi_sysfs_device_initialize(struct scsi_device *sdev)
