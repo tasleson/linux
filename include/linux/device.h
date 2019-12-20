@@ -613,6 +613,8 @@ struct device {
 	struct iommu_group	*iommu_group;
 	struct dev_iommu	*iommu;
 
+	int (*durable_name)(const struct device *dev, char *buff, size_t len);
+
 	bool			offline_disabled:1;
 	bool			offline:1;
 	bool			of_node_reused:1;
@@ -653,6 +655,8 @@ static inline const char *dev_name(const struct device *dev)
 
 extern __printf(2, 3)
 int dev_set_name(struct device *dev, const char *name, ...);
+
+int dev_durable_name(const struct device *d, char *buffer, size_t len);
 
 #ifdef CONFIG_NUMA
 static inline int dev_to_node(struct device *dev)
