@@ -3141,3 +3141,17 @@ int scsi_vpd_tpg_id(struct scsi_device *sdev, int *rel_id)
 	return group_id;
 }
 EXPORT_SYMBOL(scsi_vpd_tpg_id);
+
+int scsi_durable_name(struct scsi_device *sdev, char *buf, size_t len)
+{
+	int vpd_len = 0;
+
+	vpd_len = scsi_vpd_lun_id(sdev, buf, len);
+	if (vpd_len > 0 && vpd_len < len)
+		vpd_len++;
+	else
+		vpd_len = 0;
+
+	return vpd_len;
+}
+EXPORT_SYMBOL(scsi_durable_name);
