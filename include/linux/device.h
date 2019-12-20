@@ -799,6 +799,8 @@ struct device_type {
 	void (*release)(struct device *dev);
 
 	const struct dev_pm_ops *pm;
+
+	int (*durable_name)(const struct device *dev, char *buff, size_t len);
 };
 
 /* interface for exporting device attributes */
