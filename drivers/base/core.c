@@ -3318,6 +3318,15 @@ create_syslog_header(const struct device *dev, char *hdr, size_t hdrlen)
 				"DEVICE=+%s:%s", subsys, dev_name(dev));
 	}
 
+	if (dev->type && dev->type->durable_name) {
+		int dlen;
+
+		dlen = dev_durable_name(dev, hdr + (pos + 1),
+					hdrlen - (pos + 1));
+		if (dlen)
+			pos += dlen + 1;
+	}
+
 	if (pos >= hdrlen)
 		goto overflow;
 
