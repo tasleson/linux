@@ -133,10 +133,16 @@ __clear_page_buffers(struct page *page)
 
 static void buffer_io_error(struct buffer_head *bh, char *msg)
 {
-	if (!test_bit(BH_Quiet, &bh->b_state))
-		printk_ratelimited(KERN_ERR
+	if (!test_bit(BH_Quiet, &bh->b_state)) {
+		struct device *gendev;
+
+		gendev = (bh->b_bdev->bd_disk) ?
+			disk_to_dev(bh->b_bdev->bd_disk) : NULL;
+
+		dev_err_ratelimited(gendev,
 			"Buffer I/O error on dev %pg, logical block %llu%s\n",
 			bh->b_bdev, (unsigned long long)bh->b_blocknr, msg);
+	}
 }
 
 /*
