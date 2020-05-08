@@ -3561,6 +3561,22 @@ static int nvme_setup_streams_ns(struct nvme_ctrl *ctrl, struct nvme_ns *ns)
 	return 0;
 }
 
+static ssize_t wwid_show(struct device *dev, struct device_attribute *attr,
+		char *buf);
+
+int dev_to_nvme_durable_name(const struct device *dev, char *buf, size_t len)
+{
+	char serial[128];
+	ssize_t serial_len = wwid_show((struct device*)dev, NULL, serial);
+
+	if (serial_len > 0 && serial_len < len) {
+		serial_len -= 1;  // Remove the '\n' from the string
+		strncpy(buf, serial, serial_len);
+		return serial_len;
+	}
+	return 0;
+}
+
 static void nvme_alloc_ns(struct nvme_ctrl *ctrl, unsigned nsid)
 {
 	struct nvme_ns *ns;
@@ -3607,6 +3623,17 @@ static void nvme_alloc_ns(struct nvme_ctrl *ctrl, unsigned nsid)
 	nvme_setup_streams_ns(ctrl, ns);
 	nvme_set_disk_name(disk_name, ns, ctrl, &flags);
 
+	// The call alloc_disk_node is a macro from include/linux/genhd.h
+	// which allocates the genhd struct and associated embeded
+	// struct device and essentially intializes struct device->type to:
+	//
+	// static const struct device_type disk_type = {
+	// 	.name           = "disk",
+	//	.groups         = disk_attr_groups,
+	//	.release        = disk_release,
+	//	.devnode        = block_devnode,
+	//      .durable_name   = NULL,
+	// };
 	disk = alloc_disk_node(0, node);
 	if (!disk)
 		goto out_unlink_ns;
@@ -3616,6 +3643,23 @@ static void nvme_alloc_ns(struct nvme_ctrl *ctrl, unsigned nsid)
 	disk->queue = ns->queue;
 	disk->flags = flags;
 	memcpy(disk->disk_name, disk_name, DISK_NAME_LEN);
+
+	// Ideally it would be nice if we could do something like
+	// the following
+
+	// disk_to_dev(disk)->type->durable_name = dev_to_nvme_durable_name;
+
+	// but we can't as pointer and structure itself are static
+	// const
+	//
+	// struct device {
+	//	...
+	//	const struct device_type *type
+	// }
+	//
+	// As far as I can tell it would take a non-trivial amount of re-factoring to
+	// accomodate, but maybe that's the best approach?
+
 	ns->disk = disk;
 
 	__nvme_revalidate_disk(disk, id);
