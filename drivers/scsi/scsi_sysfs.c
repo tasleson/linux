@@ -1582,6 +1582,28 @@ static struct device_type scsi_dev_type = {
 	.groups =	scsi_sdev_attr_groups,
 };
 
+
+int dev_to_scsi_durable_name(const struct device *dev, char *buf, size_t len)
+{
+	struct scsi_device *sd_dev = NULL;
+
+	// When we go through dev_printk in the scsi layer, dev is embedded
+	// in a struct scsi_device.  When we go through the block layer,
+	// dev is embedded in struct genhd, thus we need different paths to
+	// retrieve the struct scsi_device to call scsi_durable_name.
+	if (dev->type == &scsi_dev_type) {
+		sd_dev = to_scsi_device(dev);
+	} else if (dev->parent && dev->parent->type == &scsi_dev_type) {
+		sd_dev = to_scsi_device(dev->parent);
+	} else {
+		// We have a pointer to something else, bail
+		return 0;
+	}
+
+	return scsi_durable_name(sd_dev, buf, len);
+}
+EXPORT_SYMBOL(dev_to_scsi_durable_name);
+
 void scsi_sysfs_device_initialize(struct scsi_device *sdev)
 {
 	unsigned long flags;
@@ -1591,6 +1613,7 @@ void scsi_sysfs_device_initialize(struct scsi_device *sdev)
 	device_initialize(&sdev->sdev_gendev);
 	sdev->sdev_gendev.bus = &scsi_bus_type;
 	sdev->sdev_gendev.type = &scsi_dev_type;
+	sdev->sdev_gendev.durable_name = dev_to_scsi_durable_name;
 	dev_set_name(&sdev->sdev_gendev, "%d:%d:%d:%llu",
 		     sdev->host->host_no, sdev->channel, sdev->id, sdev->lun);
 
