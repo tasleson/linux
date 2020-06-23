@@ -3814,7 +3814,7 @@ overflow:
 int dev_vprintk_emit(int level, const struct device *dev,
 		     const char *fmt, va_list args)
 {
-	char hdr[128];
+	char hdr[288];
 	size_t hdrlen;
 
 	hdrlen = create_syslog_header(dev, hdr, sizeof(hdr));
