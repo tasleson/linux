@@ -1091,6 +1091,12 @@ int ata_scsi_dev_config(struct scsi_device *sdev, struct ata_device *dev)
 	return 0;
 }
 
+int ata_scsi_durable_name(const struct device *dev, char *buf, size_t len) {
+	struct ata_device *ata_dev = container_of(dev, struct ata_device, tdev);
+	return scsi_durable_name(ata_dev->sdev, buf, len);
+}
+
+
 /**
  *	ata_scsi_slave_config - Set SCSI device attributes
  *	@sdev: SCSI device to examine
@@ -1111,8 +1117,11 @@ int ata_scsi_slave_config(struct scsi_device *sdev)
 
 	ata_scsi_sdev_config(sdev);
 
-	if (dev)
+	if (dev) {
 		rc = ata_scsi_dev_config(sdev, dev);
+		if (!rc)
+			dev->tdev.durable_name = ata_scsi_durable_name;
+	}
 
 	return rc;
 }
