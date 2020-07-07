@@ -288,7 +288,7 @@ int ata_tport_add(struct device *parent,
 	dev->parent = parent;
 	ata_host_get(ap->host);
 	dev->release = ata_tport_release;
-	dev_set_name(dev, "ata%d", ap->print_id);
+	dev_set_name(dev, "ata%u", ap->print_id);
 	transport_setup_device(dev);
 	ata_acpi_bind_port(ap);
 	error = device_add(dev);
@@ -374,6 +374,32 @@ static int ata_tlink_match(struct attribute_container *cont,
 	return &i->link_attr_cont.ac == cont;
 }
 
+void ata_tlink_symlink_add_del(struct ata_link *link, int add) {
+	struct device *dev = &link->tdev;
+	struct ata_port *ap = link->ap;
+	char lname[64];
+
+	if (ata_is_host_link(link)) {
+		snprintf(lname, sizeof(lname),
+			"link%d", ap->print_id);
+	} else {
+		snprintf(lname, sizeof(lname),
+			"link%d.%d", ap->print_id, link->pmp);
+	}
+
+	if (add) {
+		int e = sysfs_create_link(&dev->parent->kobj, &dev->kobj, lname);
+		if (e) {
+			printk("sysfs_create_link error:%d sysfs ABI broken\n", e);
+		}
+	} else {
+		sysfs_delete_link(&dev->parent->kobj, &dev->kobj, lname);
+	}
+}
+
+#define ata_tlink_symlink_add(x) ata_tlink_symlink_add_del(x, 1)
+#define ata_tlink_symlink_del(x) ata_tlink_symlink_add_del(x, 0)
+
 /**
  * ata_tlink_delete  --  remove ATA LINK
  * @port:	ATA LINK to remove
@@ -389,6 +415,7 @@ void ata_tlink_delete(struct ata_link *link)
 		ata_tdev_delete(ata_dev);
 	}
 
+	ata_tlink_symlink_del(link);
 	transport_remove_device(dev);
 	device_del(dev);
 	transport_destroy_device(dev);
@@ -415,9 +442,9 @@ int ata_tlink_add(struct ata_link *link)
 	dev->parent = &ap->tdev;
 	dev->release = ata_tlink_release;
 	if (ata_is_host_link(link))
-		dev_set_name(dev, "link%d", ap->print_id);
+		dev_set_name(dev, "ata%u", ap->print_id);
         else
-		dev_set_name(dev, "link%d.%d", ap->print_id, link->pmp);
+		dev_set_name(dev, "ata%u.%02u", ap->print_id, link->pmp);
 
 	transport_setup_device(dev);
 
@@ -428,6 +455,8 @@ int ata_tlink_add(struct ata_link *link)
 
 	transport_add_device(dev);
 	transport_configure_device(dev);
+
+	ata_tlink_symlink_add(link);
 
 	ata_for_each_dev(ata_dev, link, ALL) {
 		error = ata_tdev_add(ata_dev);
@@ -440,6 +469,7 @@ int ata_tlink_add(struct ata_link *link)
 	while (--ata_dev >= link->device) {
 		ata_tdev_delete(ata_dev);
 	}
+	ata_tlink_symlink_del(link);
 	transport_remove_device(dev);
 	device_del(dev);
   tlink_err:
@@ -630,6 +660,40 @@ static void ata_tdev_free(struct ata_device *dev)
 	put_device(&dev->tdev);
 }
 
+void ata_tdev_symlink_add_del(struct ata_device *ata_dev, int add) {
+	struct device *dev = &ata_dev->tdev;
+	struct ata_link *link = ata_dev->link;
+	struct ata_port *ap = link->ap;
+	char dname[64];
+
+	if (ata_is_host_link(link))
+		snprintf(dname, sizeof(dname), "dev%d.%d", ap->print_id,ata_dev->devno);
+        else
+		snprintf(dname, sizeof(dname), "dev%d.%d.0", ap->print_id, link->pmp);
+
+	if (add) {
+		int e;
+		// We need todo something like this
+		//sysfs_create_link(&dev->class->p->subsys.kobj,
+		//		  &dev->kobj, dname);
+		e = device_add_class_symlink_additional(dev, dname);
+		if (e) {
+			printk("TONY_DEBUG: device_add_class_symlink_additional: %d\n", e);
+		}
+
+		e = sysfs_create_link(&dev->parent->kobj, &dev->kobj, dname);
+		if (e) {
+			printk("TONY_DEBUG: sysfs_create_link: %d\n", e);
+		}
+	} else {
+		sysfs_delete_link(&dev->parent->kobj, &dev->kobj, dname);
+		device_delete_class_symlink_additional(dev, dname);
+	}
+}
+
+#define ata_tdev_symlink_add(x) ata_tdev_symlink_add_del(x, 1)
+#define ata_tdev_symlink_del(x) ata_tdev_symlink_add_del(x, 0)
+
 /**
  * ata_tdev_delete  --  remove ATA device
  * @port:	ATA PORT to remove
@@ -640,6 +704,7 @@ static void ata_tdev_delete(struct ata_device *ata_dev)
 {
 	struct device *dev = &ata_dev->tdev;
 
+	ata_tdev_symlink_del(ata_dev);
 	transport_remove_device(dev);
 	device_del(dev);
 	ata_tdev_free(ata_dev);
@@ -665,10 +730,8 @@ static int ata_tdev_add(struct ata_device *ata_dev)
 	device_initialize(dev);
 	dev->parent = &link->tdev;
 	dev->release = ata_tdev_release;
-	if (ata_is_host_link(link))
-		dev_set_name(dev, "dev%d.%d", ap->print_id,ata_dev->devno);
-        else
-		dev_set_name(dev, "dev%d.%d.0", ap->print_id, link->pmp);
+
+	dev_set_name(dev, "ata%u.%02u", ap->print_id, link->pmp + ata_dev->devno);
 
 	transport_setup_device(dev);
 	ata_acpi_bind_dev(ata_dev);
@@ -680,6 +743,8 @@ static int ata_tdev_add(struct ata_device *ata_dev)
 
 	transport_add_device(dev);
 	transport_configure_device(dev);
+
+	ata_tdev_symlink_add(ata_dev);
 	return 0;
 }
 

@@ -6444,7 +6444,7 @@ void ata_port_printk(const struct ata_port *ap, const char *level,
 	vaf.fmt = fmt;
 	vaf.va = &args;
 
-	printk("%sata%u: %pV", level, ap->print_id, &vaf);
+	dev_printk(level, &ap->tdev, "%pV", &vaf);
 
 	va_end(args);
 }
@@ -6461,12 +6461,7 @@ void ata_link_printk(const struct ata_link *link, const char *level,
 	vaf.fmt = fmt;
 	vaf.va = &args;
 
-	if (sata_pmp_attached(link->ap) || link->ap->slave_link)
-		printk("%sata%u.%02u: %pV",
-		       level, link->ap->print_id, link->pmp, &vaf);
-	else
-		printk("%sata%u: %pV",
-		       level, link->ap->print_id, &vaf);
+	dev_printk(level, &link->tdev, "%pV", &vaf);
 
 	va_end(args);
 }
@@ -6483,9 +6478,7 @@ void ata_dev_printk(const struct ata_device *dev, const char *level,
 	vaf.fmt = fmt;
 	vaf.va = &args;
 
-	printk("%sata%u.%02u: %pV",
-	       level, dev->link->ap->print_id, dev->link->pmp + dev->devno,
-	       &vaf);
+	dev_printk(level, &dev->tdev,"%pV", &vaf);
 
 	va_end(args);
 }

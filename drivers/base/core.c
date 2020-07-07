@@ -2217,6 +2217,16 @@ static void cleanup_glue_dir(struct device *dev, struct kobject *glue_dir)
 	mutex_unlock(&gdp_mutex);
 }
 
+int device_add_class_symlink_additional(struct device *dev, const char *name) {
+	return sysfs_create_link(&dev->class->p->subsys.kobj, &dev->kobj, name);
+}
+EXPORT_SYMBOL_GPL(device_add_class_symlink_additional);
+
+
+void device_delete_class_symlink_additional(struct device *dev, const char *name) {
+	sysfs_delete_link(&dev->class->p->subsys.kobj, &dev->kobj, name);
+}
+EXPORT_SYMBOL_GPL(device_delete_class_symlink_additional);
 static int device_add_class_symlinks(struct device *dev)
 {
 	struct device_node *of_node = dev_of_node(dev);
